@@ -1,0 +1,17 @@
+name: Test Self-Hosted Runner
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-runner:
+    runs-on: self-hosted
+
+    steps:
+      - name: Check runner and Docker
+        run: |
+          echo "The self-hosted runner is working"
+          uname -a
+          docker --version
+          docker compose version
+          docker run --rm hello-world
