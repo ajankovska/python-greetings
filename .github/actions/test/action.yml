@@ -1,0 +1,31 @@
+name: Test Python Greetings
+
+description: Run API tests against one environment
+
+inputs:
+  environment:
+    description: Environment name
+    required: true
+
+runs:
+  using: composite
+
+  steps:
+    - name: Print testing information
+      shell: bash
+      run: |
+        echo "Running API tests on ${{ inputs.environment }} environment..."
+
+    - name: Pull latest API tests image
+      shell: bash
+      run: |
+        docker pull "${DOCKERHUB_USERNAME}/api-tests:latest"
+
+    - name: Run API tests
+      shell: bash
+      run: |
+        docker run \
+          --network=host \
+          --rm \
+          "${DOCKERHUB_USERNAME}/api-tests:latest" \
+          run greetings "greetings_${{ inputs.environment }}"

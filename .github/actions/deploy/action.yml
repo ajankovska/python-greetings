@@ -1,0 +1,41 @@
+name: Deploy Python Greetings
+
+description: Pull latest image and recreate one Docker Compose service
+
+inputs:
+  environment:
+    description: Deployment environment
+    required: true
+
+  service:
+    description: Docker Compose service name
+    required: true
+
+runs:
+  using: composite
+
+  steps:
+    - name: Print deployment information
+      shell: bash
+      run: |
+        echo "Deploying Python microservice to ${{ inputs.environment }} environment..."
+
+    - name: Pull latest application image
+      shell: bash
+      run: |
+        docker pull "${DOCKERHUB_USERNAME}/python-greetings-app:latest"
+
+    - name: Stop existing service
+      shell: bash
+      run: |
+        docker compose stop "${{ inputs.service }}" || true
+
+    - name: Remove existing service
+      shell: bash
+      run: |
+        docker compose rm --force "${{ inputs.service }}" || true
+
+    - name: Start updated service
+      shell: bash
+      run: |
+        docker compose up --detach "${{ inputs.service }}"
