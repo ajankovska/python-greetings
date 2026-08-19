@@ -1,0 +1,127 @@
+name: Python Greetings Delivery Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+  workflow_dispatch:
+
+env:
+  DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+  APPLICATION_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/python-greetings-app:latest
+
+jobs:
+  build-docker-image:
+    runs-on: self-hosted
+
+    steps:
+      - name: Print stage information
+        run: |
+          echo "Building Python microservice Docker image..."
+
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Log in to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build application image
+        run: |
+          docker build \
+            --tag "${APPLICATION_IMAGE}" \
+            .
+
+      - name: Push application image
+        run: |
+          docker push "${APPLICATION_IMAGE}"
+
+  deploy-to-dev:
+    runs-on: self-hosted
+    needs:
+      - build-docker-image
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Deploy DEV
+        uses: ./.github/actions/deploy
+        with:
+          environment: DEV
+          service: greetings-app-dev
+
+  tests-on-dev:
+    runs-on: self-hosted
+    needs:
+      - deploy-to-dev
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Test DEV
+        uses: ./.github/actions/test
+        with:
+          environment: dev
+
+  deploy-to-stg:
+    runs-on: self-hosted
+    needs:
+      - tests-on-dev
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Deploy STG
+        uses: ./.github/actions/deploy
+        with:
+          environment: STG
+          service: greetings-app-stg
+
+  tests-on-stg:
+    runs-on: self-hosted
+    needs:
+      - deploy-to-stg
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Test STG
+        uses: ./.github/actions/test
+        with:
+          environment: stg
+
+  deploy-to-prod:
+    runs-on: self-hosted
+    needs:
+      - tests-on-stg
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Deploy PROD
+        uses: ./.github/actions/deploy
+        with:
+          environment: PROD
+          service: greetings-app-prod
+
+  tests-on-prod:
+    runs-on: self-hosted
+    needs:
+      - deploy-to-prod
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Test PROD
+        uses: ./.github/actions/test
+        with:
+          environment: prod
